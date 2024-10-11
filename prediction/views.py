@@ -39,8 +39,6 @@ class ImageClassificationView(generics.CreateAPIView):
         # Retrieve the URL of the saved image
         image_url = request.build_absolute_uri(prediction.image.url)
         prediction.save()
-        print(image_url)
-        print(prediction.image.url)
 
         # Use the Gradio client to get the prediction
         client = Client("TarikKarol/pneumonia")
