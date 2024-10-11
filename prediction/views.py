@@ -35,6 +35,7 @@ class ImageClassificationView(generics.CreateAPIView):
 
         # Save the prediction to the database
         prediction = Prediction.objects.create(image=image)  # Save without inference initially
+        prediction.save()
 
         # Retrieve the URL of the saved image
         image_url = request.build_absolute_uri(prediction.image.url)
