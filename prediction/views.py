@@ -23,6 +23,49 @@ class PredictionListAPIView(generics.GenericAPIView):
         return JsonResponse(serializer.data, safe=False)
 
 
+# class ImageClassificationView(generics.CreateAPIView):
+#     serializer_class = PredictionSerializer
+
+#     def post(self, request, *args, **kwargs):
+#         serializer = self.get_serializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+        
+#         # Retrieve the uploaded image
+#         image = serializer.validated_data['image']
+
+#         # Save the prediction to the database
+#         prediction = Prediction.objects.create(image=image)  # Save without inference initially
+#         prediction.save()
+
+#         # Retrieve the URL of the saved image
+#         image_url = request.build_absolute_uri(prediction.image.url)
+#         prediction.save()
+
+#         # Use the Gradio client to get the prediction
+#         client = Client("TarikKarol/pneumonia")
+#         result = client.predict(
+#             image=handle_file(image_url), 
+#             api_name="/predict"
+#         )
+
+#         if result['label'] == "1":
+#             result = "YOU MIGHT HAVE PNEUMONIA"
+#         else:
+#             result = "YOU PROBABLY DO NOT HAVE PNEUMONIA"
+
+#         # Save the inference result in the database
+#         prediction.inference = result  # Assuming 'result' contains the inference output
+#         prediction.save()
+
+#         # Return the result
+#         return Response({
+#             'inference': result
+#         }, status=status.HTTP_200_OK)
+
+import requests
+from django.core.files.base import ContentFile
+from gradio_client import Client, handle_file
+
 class ImageClassificationView(generics.CreateAPIView):
     serializer_class = PredictionSerializer
 
@@ -39,26 +82,41 @@ class ImageClassificationView(generics.CreateAPIView):
 
         # Retrieve the URL of the saved image
         image_url = request.build_absolute_uri(prediction.image.url)
-        prediction.save()
+
+        # Download the image and prepare it for Gradio
+        image_response = requests.get(image_url)
+        if image_response.status_code == 200:
+            image_content = ContentFile(image_response.content, name=image.name)
+        else:
+            return Response({
+                'error': 'Failed to download the image from the provided URL.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         # Use the Gradio client to get the prediction
         client = Client("TarikKarol/pneumonia")
-        result = client.predict(
-            image=handle_file(image_url), 
-            api_name="/predict"
-        )
+        try:
+            result = client.predict(
+                image=handle_file(image_content),  # Pass the actual file, not the URL
+                api_name="/predict"
+            )
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+        # Interpret the result and save the inference
         if result['label'] == "1":
-            result = "YOU MIGHT HAVE PNEUMONIA"
+            prediction_result = "YOU MIGHT HAVE PNEUMONIA"
         else:
-            result = "YOU PROBABLY DO NOT HAVE PNEUMONIA"
+            prediction_result = "YOU PROBABLY DO NOT HAVE PNEUMONIA"
 
         # Save the inference result in the database
-        prediction.inference = result  # Assuming 'result' contains the inference output
+        prediction.inference = prediction_result
         prediction.save()
 
         # Return the result
         return Response({
-            'inference': result
+            'inference': prediction_result
         }, status=status.HTTP_200_OK)
+
 
