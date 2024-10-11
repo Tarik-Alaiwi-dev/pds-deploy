@@ -62,9 +62,6 @@ class PredictionListAPIView(generics.GenericAPIView):
 #             'inference': result
 #         }, status=status.HTTP_200_OK)
 
-import requests
-from django.core.files.base import ContentFile
-from gradio_client import Client, handle_file
 
 class ImageClassificationView(generics.CreateAPIView):
     serializer_class = PredictionSerializer
@@ -80,23 +77,14 @@ class ImageClassificationView(generics.CreateAPIView):
         prediction = Prediction.objects.create(image=image)  # Save without inference initially
         prediction.save()
 
-        # Retrieve the URL of the saved image
+        # Retrieve the URL of the saved image (make sure it's publicly accessible)
         image_url = request.build_absolute_uri(prediction.image.url)
-
-        # Download the image and prepare it for Gradio
-        image_response = requests.get(image_url)
-        if image_response.status_code == 200:
-            image_content = ContentFile(image_response.content, name=image.name)
-        else:
-            return Response({
-                'error': 'Failed to download the image from the provided URL.'
-            }, status=status.HTTP_400_BAD_REQUEST)
 
         # Use the Gradio client to get the prediction
         client = Client("TarikKarol/pneumonia")
         try:
             result = client.predict(
-                image=handle_file(image_content),  # Pass the actual file, not the URL
+                image=image_url,  # Pass the URL directly
                 api_name="/predict"
             )
         except Exception as e:
@@ -118,5 +106,6 @@ class ImageClassificationView(generics.CreateAPIView):
         return Response({
             'inference': prediction_result
         }, status=status.HTTP_200_OK)
+
 
 
