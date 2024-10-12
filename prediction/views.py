@@ -47,7 +47,7 @@ class ImageClassificationView(generics.CreateAPIView):
         # Use the Gradio client to get the prediction
         client = Client("TarikKarol/pneumonia")
         result = client.predict(
-            image=handle_file(image_url), 
+            image=handle_file('https://pds-deploy.onrender.com'+prediction.image.url), 
             api_name="/predict"
         )
 
