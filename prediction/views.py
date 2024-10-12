@@ -45,11 +45,19 @@ class ImageClassificationView(generics.CreateAPIView):
         prediction.save()
 
         # Use the Gradio client to get the prediction
-        client = Client("TarikKarol/pneumonia")
-        result = client.predict(
-            image=handle_file('https://pds-deploy.onrender.com'+prediction.image.url), 
-            api_name="/predict"
-        )
+        done = True
+        while done:
+            try:
+                client = Client("TarikKarol/pneumonia")
+                result = client.predict(
+                    image=handle_file(image_url), 
+                    api_name="/predict"
+                )
+                done = False
+            except:
+                print("Retrying...")
+
+        print(result)
 
         if result['label'] == "1":
             result = "YOU MIGHT HAVE PNEUMONIA"
