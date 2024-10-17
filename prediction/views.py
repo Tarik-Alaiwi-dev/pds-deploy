@@ -45,17 +45,11 @@ class ImageClassificationView(generics.CreateAPIView):
         prediction.save()
 
         # Use the Gradio client to get the prediction
-        done = True
-        while done:
-            try:
-                client = Client("TarikKarol/pneumonia")
-                result = client.predict(
-                    image=handle_file(image_url), 
-                    api_name="/predict"
-                )
-                done = False
-            except:
-                print("Retrying...")
+        client = Client("TarikKarol/pneumonia")
+        result = client.predict(
+            image=handle_file(image_url), 
+            api_name="/predict"
+        )
 
         print(result)
 
